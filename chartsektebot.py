@@ -16,11 +16,18 @@ try:
 except:
     quit("Database Error - Is MariaDB Server running? - Config correct?")
 
+def checkGuild(ID):
+    if ID == cfg["GUILD_ID"]:
+        return True
+    else:
+        return False
+
 
 bot = commands.Bot(command_prefix='>', description="This is a Helper Bot")
 
 @bot.command()
 async def ping(ctx):
+    print(ctx.message)
     await ctx.send('pong')
 
 @bot.command()
@@ -36,40 +43,44 @@ async def on_ready():
 
 @bot.listen()
 async def on_raw_reaction_add(payload):#
+    if checkGuild(payload.guild_id):
+        pass
+    else:
+        return
     minutes = cfg["minutes"]
-    channel = bot.get_channel(780850691891134474)
+    channel = bot.get_channel(cfg["OutputChannel"])
     msg = await bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
 
     if payload.member.id == msg.author.id:
         await channel.send(f"User <@{payload.member.id}> du kannst dich nicht selbst voten.")
-    else:
-        if payload.emoji.name == cfg["Emoji"]:
-            #CHECK LAST UPVOTE
-            DBCursor.execute("select 'yes' as Result from last_upvote where USER_ID = '%s' AND current_timestamp() > DATE_ADD(UPVOTE_DATE, INTERVAL %s MINUTE);",(payload.member.id,minutes))
+        return
+    if payload.emoji.name == cfg["Emoji"]:
+        #CHECK LAST UPVOTE
+        DBCursor.execute("select 'yes' as Result from last_upvote where USER_ID = '%s' AND current_timestamp() > DATE_ADD(UPVOTE_DATE, INTERVAL %s MINUTE);",(payload.member.id,minutes))
+        res = DBCursor.fetchall()
+        try:
+            res = res[0][0]
+        except IndexError:
+            #IF NOT IN DB, THEN RES=YES ELSE NOTHING
+            DBCursor.execute(f"select 'yes' as Result from last_upvote where USER_ID = {payload.member.id};")
             res = DBCursor.fetchall()
             try:
                 res = res[0][0]
+                res = "false"
             except IndexError:
-                #IF NOT IN DB, THEN RES=YES ELSE NOTHING
-                DBCursor.execute(f"select 'yes' as Result from last_upvote where USER_ID = {payload.member.id};")
-                res = DBCursor.fetchall()
-                try:
-                    res = res[0][0]
-                    res = "false"
-                except IndexError:
-                    res = "yes"
+                res = "yes"
             
-            if res == "yes":
-                #INSERT LAST UPVOTE
-                DBCursor.execute(f"INSERT INTO last_upvote (USER_ID, UPVOTE_DATE) VALUES ({payload.member.id}, current_timestamp()) ON DUPLICATE KEY UPDATE UPVOTE_DATE = current_timestamp()")
-                DB.commit()
-                DBCursor.execute(f"INSERT INTO upvote (USER_ID, UPVOTE_DATE, UPVOTE, VONUSER_ID) VALUES ({msg.author.id}, current_timestamp(), 1, {payload.member.id}) ON DUPLICATE KEY UPDATE UPVOTE_DATE = current_timestamp()")
-                DB.commit()
-                #INSERT UPVOTE
-                await channel.send(f"<@{msg.author.id}> hat einen Upvote von {payload.member.name} bekommen")
-            else:
-                await channel.send(f"<@{payload.member.id}> du hast erst kürzlich gevotet. Zwischen jedem Vote müssen {minutes} Minuten liegen.")
-                #await payload.member.send(f"User <@{payload.member.id}> du hast erst kürzlich gevotet. Zwischen jedem Vote müssen {minutes} Minuten liegen.")
+        if res == "yes":
+            #INSERT LAST UPVOTE
+            DBCursor.execute(f"INSERT INTO last_upvote (USER_ID, UPVOTE_DATE) VALUES ({payload.member.id}, current_timestamp()) ON DUPLICATE KEY UPDATE UPVOTE_DATE = current_timestamp()")
+            DB.commit()
+            DBCursor.execute(f"INSERT INTO upvote (USER_ID, UPVOTE_DATE, UPVOTE, VONUSER_ID) VALUES ({msg.author.id}, current_timestamp(), 1, {payload.member.id}) ON DUPLICATE KEY UPDATE UPVOTE_DATE = current_timestamp()")
+            DB.commit()
+            #INSERT UPVOTE
+            await channel.send(f"<@{msg.author.id}> hat einen Upvote von {payload.member.name} bekommen")
+        else:
+            await channel.send(f"<@{payload.member.id}> du hast erst kürzlich gevotet. Zwischen jedem Vote müssen {minutes} Minuten liegen.")
+            #await payload.member.send(f"User <@{payload.member.id}> du hast erst kürzlich gevotet. Zwischen jedem Vote müssen {minutes} Minuten liegen.")
 
             #mycursor.execute()
             
