@@ -1,0 +1,14 @@
+CREATE DATABASE `chartsekte`
+
+CREATE TABLE `last_upvote` (
+  `USER_ID` varchar(30) NOT NULL,
+  `UPVOTE_DATE` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`USER_ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+
+CREATE TABLE `upvote` (
+  `USER_ID` varchar(30) NOT NULL,
+  `UPVOTE_DATE` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `UPVOTE` int(11) NOT NULL,
+  `VONUSER_ID` varchar(30) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
