@@ -28,12 +28,35 @@ def checkDM(Channdel_Object):
     else:
         return False
 
-bot = commands.Bot(command_prefix='>', description="This is a Helper Bot")
+bot = commands.Bot(command_prefix='>', description="Chartsekte Bot")
+bot.remove_command('help')
 
+@bot.command()
+async def help(ctx):
+    if checkDM(ctx.message.channel):
+        await ctx.send('**ChartSekte Bot**\n\n**Website**\nhttps://chartsekte.de \n**Commands:**`\n>ping [Selftest]\n>top [Zeigt die Top 5 User an]`')
+    else:
+        return
 @bot.command()
 async def ping(ctx):
     if checkDM(ctx.message.channel):
         await ctx.send('pong')
+    else:
+        return
+@bot.command()
+async def top(ctx, num=5):
+    if checkDM(ctx.message.channel):
+        DBCursor.execute("select USER_ID, sum(Upvote)  from chartsekte.upvote group by USER_ID Order by sum(Upvote) DESC")
+        res = DBCursor.fetchall()
+        res_string = ""
+        i = 0
+        for y,x in res:
+            i = i+1
+            res_string = res_string+ f"**Platz {i}:** Votes: {x} User:<@{y}>\n"
+            if i == 5:
+                break
+        await ctx.send('**Top 5 gevoteten Personen:**\n\n'+res_string)
+
     else:
         return
 
@@ -50,8 +73,10 @@ async def on_raw_reaction_add(payload):#
         pass
     else:
         return
+    
     minutes = cfg["minutes"]
     channel = bot.get_channel(cfg["OutputChannel"])
+    ch = bot.get_channel(payload.channel_id)
     msg = await bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
 
     #CHECK EMOJI
@@ -60,7 +85,8 @@ async def on_raw_reaction_add(payload):#
 
     #CHECK SELFVOTE
     if payload.member.id == msg.author.id:
-        await channel.send(f"**[PRIVATE]** User <@{payload.member.id}> du kannst dich nicht selbst voten.")
+        
+        await ch.send(f"User <@{payload.member.id}> du kannst dich nicht selbst voten.",delete_after=cfg["DELETE_AFTER"])
         return
 
     #CHECK LAST UPVOTE
@@ -87,20 +113,7 @@ async def on_raw_reaction_add(payload):#
         #INSERT UPVOTE
         await channel.send(f"<@{msg.author.id}> hat einen Upvote von {payload.member.name} bekommen")
     else:
-        await channel.send(f"**[PRIVATE]** <@{payload.member.id}> du hast erst kürzlich gevotet. Zwischen jedem Vote müssen {minutes} Minuten liegen.")
+        await ch.send(f"<@{payload.member.id}> du hast erst kürzlich gevotet. Zwischen jedem Vote müssen {minutes} Minuten liegen.",delete_after=cfg["DELETE_AFTER"])
         #await payload.member.send(f"User <@{payload.member.id}> du hast erst kürzlich gevotet. Zwischen jedem Vote müssen {minutes} Minuten liegen.")
-
-        #mycursor.execute()
-
-async def on_message(message):
-    if "tutorial" in message.content.lower():
-        # in this case don't respond with the word "Tutorial" or you will call the on_message event recursively
-        await message.channel.send('This is that you want http://youtube.com/fazttech')
-        await bot.process_commands(message)
-@bot.command()
-async def poll(ctx, *, text):
-    message = await ctx.send(text)
-    for emoji in ('👍', '👎'):
-        await message.add_reaction(emoji)
 
 bot.run(cfg["DiscordToken"])
