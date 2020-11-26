@@ -110,7 +110,6 @@ async def on_raw_reaction_add(payload):#
         DBCursor.execute(f"INSERT INTO upvote (USER_ID, UPVOTE_DATE, UPVOTE, VONUSER_ID) VALUES ({msg.author.id}, current_timestamp(), 1, {payload.member.id}) ON DUPLICATE KEY UPDATE UPVOTE_DATE = current_timestamp()")
         DB.commit()
         #INSERT UPVOTE
-        print(msg)
         if msg.author.id == cfg["IGNORE_MENTION_ID"]:
             await channel.send(f"{msg.author.name} hat einen Upvote von {payload.member.name} bekommen")
         else:
