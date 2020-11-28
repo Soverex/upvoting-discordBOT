@@ -102,17 +102,18 @@ async def on_raw_reaction_add(payload):#
             res = "false"
         except IndexError:
             res = "yes"
-            
+
+    #INSERT UPVOTE        
     if res == "yes":
-        #INSERT LAST UPVOTE
-        DBCursor.execute(f"INSERT INTO last_upvote (USER_ID, UPVOTE_DATE) VALUES ({payload.member.id}, current_timestamp()) ON DUPLICATE KEY UPDATE UPVOTE_DATE = current_timestamp()")
-        DB.commit()
-        DBCursor.execute(f"INSERT INTO upvote (USER_ID, UPVOTE_DATE, UPVOTE, VONUSER_ID) VALUES ({msg.author.id}, current_timestamp(), 1, {payload.member.id}) ON DUPLICATE KEY UPDATE UPVOTE_DATE = current_timestamp()")
-        DB.commit()
-        #INSERT UPVOTE
+        #IGNORE USER
         if msg.author.id == cfg["IGNORE_MENTION_ID"]:
-            await channel.send(f"{msg.author.name} hat einen Upvote von {payload.member.name} bekommen")
+            await ch.send(f"Der User {msg.author.name} kann nicht gevotet werden.", delete_after=cfg["DELETE_AFTER"])
         else:
+             #INSERT LAST UPVOTE
+            DBCursor.execute(f"INSERT INTO last_upvote (USER_ID, UPVOTE_DATE) VALUES ({payload.member.id}, current_timestamp()) ON DUPLICATE KEY UPDATE UPVOTE_DATE = current_timestamp()")
+            DB.commit()
+            DBCursor.execute(f"INSERT INTO upvote (USER_ID, UPVOTE_DATE, UPVOTE, VONUSER_ID) VALUES ({msg.author.id}, current_timestamp(), 1, {payload.member.id}) ON DUPLICATE KEY UPDATE UPVOTE_DATE = current_timestamp()")
+            DB.commit()
             await channel.send(f"<@{msg.author.id}> hat einen Upvote von {payload.member.name} bekommen")
     else:
         await ch.send(f"<@{payload.member.id}> du hast erst kürzlich gevotet. Zwischen jedem Vote müssen {minutes} Minuten liegen.",delete_after=cfg["DELETE_AFTER"])
