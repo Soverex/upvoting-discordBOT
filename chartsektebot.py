@@ -220,8 +220,11 @@ async def member_sync():
     role = get(guild.roles, name=cfg["ROLE"])
 
     for x in res:
-        user = guild.get_member(int(x[0]))
-        await user.remove_roles(role)
+        try:
+            user = guild.get_member(int(x[0]))
+            await user.remove_roles(role)
+        except:
+            pass
 
     channel = bot.get_channel(cfg["OutputChannel"])
     await channel.send(f"Wordpress DataBase Sync")
