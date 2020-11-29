@@ -3,6 +3,7 @@ from discord.ext import commands
 import datetime
 import mysql.connector as mysql
 from config import config as cfg
+from config import IGNORE_LIST as IGNORE_LIST
 
 try:
     DB = mysql.connect(
@@ -106,7 +107,7 @@ async def on_raw_reaction_add(payload):#
     #INSERT UPVOTE        
     if res == "yes":
         #IGNORE USER
-        if msg.author.id == cfg["IGNORE_MENTION_ID"]:
+        if msg.author.id in IGNORE_LIST:
             await ch.send(f"Der User {msg.author.name} kann nicht gevotet werden.", delete_after=cfg["DELETE_AFTER"])
         else:
              #INSERT LAST UPVOTE
