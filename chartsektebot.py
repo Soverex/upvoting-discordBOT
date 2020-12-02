@@ -157,7 +157,8 @@ async def on_raw_reaction_add(payload):#
     if res == "yes":
         #IGNORE USER
         if msg.author.id in IGNORE_LIST:
-            await ch.send(f"Der User {msg.author.name} kann nicht gevotet werden.", delete_after=cfg["DELETE_AFTER"])
+            #await ch.send(f"Der User {msg.author.name} kann nicht gevotet werden.", delete_after=cfg["DELETE_AFTER"])
+            pass
         else:
              #INSERT LAST UPVOTE
             DBCursor.execute(f"INSERT INTO last_upvote (USER_ID, UPVOTE_DATE) VALUES ({payload.member.id}, current_timestamp()) ON DUPLICATE KEY UPDATE UPVOTE_DATE = current_timestamp()")
