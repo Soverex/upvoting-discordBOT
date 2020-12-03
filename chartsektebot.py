@@ -69,8 +69,11 @@ async def call(ctx):
 @bot.command()
 async def top(ctx, num=5):
     if checkDM(ctx.message.channel):
-        DBCursor.execute("select USER_ID, sum(Upvote)  from chartsekte.upvote group by USER_ID Order by sum(Upvote) DESC")
-        res = DBCursor.fetchall()
+        try:
+            DBCursor.execute("select USER_ID, sum(Upvote)  from chartsekte.upvote group by USER_ID Order by sum(Upvote) DESC")
+            res = DBCursor.fetchall()
+        except:
+            quit()
         res_string = ""
         i = 0
         for y,x in res:
@@ -92,8 +95,11 @@ async def mail(ctx ,mail="none"):
         else:
             #CHECK MAIL IN DB
             await ctx.send("Danke, deine Email wird überprüft. Wenn du eine aktives Abonnement hast, erhältst du deinen Rang in den nächsten Sekunden.\n\nWenn du nach 10 Minuten noch keinen Rang hast, du aber das Produkt gekauft hast, schreibe bitte unserem Support unter: https://t.me/chartsektensupport an.\n\nDu hast ausversehen eine falsche Email-Adresse angegeben? Wiederhole den Command einfach.")
-            DBCursor.execute(f"SELECT STATUS FROM users where USER_MAIL = '{mail}'")
-            res =DBCursor.fetchall()
+            try:
+                DBCursor.execute(f"SELECT STATUS FROM users where USER_MAIL = '{mail}'")
+                res =DBCursor.fetchall()
+            except:
+                quit()
             try:
                 #SET ROLE
                 if res[0][0] == 'ACTIVE':
@@ -102,8 +108,11 @@ async def mail(ctx ,mail="none"):
                     user = guild.get_member(ctx.message.author.id)
                     await user.add_roles(role)
                     #SAFE ID IN DB
-                    DBCursor.execute(f"UPDATE users SET DISCORD_ID ='{ctx.message.author.id}' where USER_MAIL = '{mail}'")
-                    DB.commit()
+                    try:
+                        DBCursor.execute(f"UPDATE users SET DISCORD_ID ='{ctx.message.author.id}' where USER_MAIL = '{mail}'")
+                        DB.commit()
+                    except:
+                        quit()
             except:
                 pass
     else:
@@ -139,14 +148,20 @@ async def on_raw_reaction_add(payload):#
         return
 
     #CHECK LAST UPVOTE
-    DBCursor.execute("select 'yes' as Result from last_upvote where USER_ID = '%s' AND current_timestamp() > DATE_ADD(UPVOTE_DATE, INTERVAL %s MINUTE);",(payload.member.id,minutes))
-    res = DBCursor.fetchall()
+    try:
+        DBCursor.execute("select 'yes' as Result from last_upvote where USER_ID = '%s' AND current_timestamp() > DATE_ADD(UPVOTE_DATE, INTERVAL %s MINUTE);",(payload.member.id,minutes))
+        res = DBCursor.fetchall()
+    except:
+        quit()
     try:
         res = res[0][0]
     except IndexError:
         #IF NOT IN DB, THEN RES=YES ELSE NOTHING
-        DBCursor.execute(f"select 'yes' as Result from last_upvote where USER_ID = {payload.member.id};")
-        res = DBCursor.fetchall()
+        try:
+            DBCursor.execute(f"select 'yes' as Result from last_upvote where USER_ID = {payload.member.id};")
+            res = DBCursor.fetchall()
+        except:
+            quit()
         try:
             res = res[0][0]
             res = "false"
@@ -161,10 +176,13 @@ async def on_raw_reaction_add(payload):#
             pass
         else:
              #INSERT LAST UPVOTE
-            DBCursor.execute(f"INSERT INTO last_upvote (USER_ID, UPVOTE_DATE) VALUES ({payload.member.id}, current_timestamp()) ON DUPLICATE KEY UPDATE UPVOTE_DATE = current_timestamp()")
-            DB.commit()
-            DBCursor.execute(f"INSERT INTO upvote (USER_ID, UPVOTE_DATE, UPVOTE, VONUSER_ID) VALUES ({msg.author.id}, current_timestamp(), 1, {payload.member.id}) ON DUPLICATE KEY UPDATE UPVOTE_DATE = current_timestamp()")
-            DB.commit()
+            try:
+                DBCursor.execute(f"INSERT INTO last_upvote (USER_ID, UPVOTE_DATE) VALUES ({payload.member.id}, current_timestamp()) ON DUPLICATE KEY UPDATE UPVOTE_DATE = current_timestamp()")
+                DB.commit()
+                DBCursor.execute(f"INSERT INTO upvote (USER_ID, UPVOTE_DATE, UPVOTE, VONUSER_ID) VALUES ({msg.author.id}, current_timestamp(), 1, {payload.member.id}) ON DUPLICATE KEY UPDATE UPVOTE_DATE = current_timestamp()")
+                DB.commit()
+            except:
+                quit()
             await channel.send(f"<@{msg.author.id}> hat einen Upvote von {payload.member.name} bekommen")
     else:
         await ch.send(f"<@{payload.member.id}> du hast erst kürzlich gevotet. Zwischen jedem Vote müssen {minutes} Minuten liegen.",delete_after=cfg["DELETE_AFTER"])
@@ -173,48 +191,60 @@ async def on_raw_reaction_add(payload):#
 @loop(minutes=5)
 async def member_sync():
     #INSERT USERS FROM WP WITH STATUS ACTIVE
-    WPDBCursor.execute(f"""SELECT DISTINCT um.user_id, u.user_email, u.display_name, p2.post_title, p2.post_type
-        FROM  {cfg["WORDPRESS_PREFIX"]}_posts AS p
-        LEFT JOIN  {cfg["WORDPRESS_PREFIX"]}_posts AS p2 ON p2.ID = p.post_parent
-        LEFT JOIN  {cfg["WORDPRESS_PREFIX"]}_users AS u ON u.id = p.post_author
-        LEFT JOIN  {cfg["WORDPRESS_PREFIX"]}_usermeta AS um ON u.id = um.user_id
-        WHERE p.post_type = 'wc_user_membership'
-        AND p.post_status IN ('wcm-active')
-        AND p2.post_type = 'wc_membership_plan';""")
-    res = WPDBCursor.fetchall()
+    try:
+        WPDBCursor.execute(f"""SELECT DISTINCT um.user_id, u.user_email, u.display_name, p2.post_title, p2.post_type
+            FROM  {cfg["WORDPRESS_PREFIX"]}_posts AS p
+            LEFT JOIN  {cfg["WORDPRESS_PREFIX"]}_posts AS p2 ON p2.ID = p.post_parent
+            LEFT JOIN  {cfg["WORDPRESS_PREFIX"]}_users AS u ON u.id = p.post_author
+            LEFT JOIN  {cfg["WORDPRESS_PREFIX"]}_usermeta AS um ON u.id = um.user_id
+            WHERE p.post_type = 'wc_user_membership'
+            AND p.post_status IN ('wcm-active')
+            AND p2.post_type = 'wc_membership_plan';""")
+        res = WPDBCursor.fetchall()
+    except:
+        quit()
     for x in res:
-        DBCursor.execute(f"""
-        INSERT INTO users
-        (DISCORD_ID, USER_MAIL, DISPLAY_NAME, MEMBERSHIP, STATUS)
-        VALUES(NULL, '{x[1]}', '{x[2]}', '{x[3]}', 'ACTIVE')
-        ON DUPLICATE KEY UPDATE 
-        MEMBERSHIP = '{x[3]}', STATUS='ACTIVE'
-        """)
-        DB.commit()
+        try:
+            DBCursor.execute(f"""
+            INSERT INTO users
+            (DISCORD_ID, USER_MAIL, DISPLAY_NAME, MEMBERSHIP, STATUS)
+            VALUES(NULL, '{x[1]}', '{x[2]}', '{x[3]}', 'ACTIVE')
+            ON DUPLICATE KEY UPDATE 
+            MEMBERSHIP = '{x[3]}', STATUS='ACTIVE'
+            """)
+            DB.commit()
+        except:
+            quit()
 
     #SET STATUS INACTIVE IF EMAIL NOT IN WP DB
-    WPDBCursor.execute(f"""
-        update chartsekte.users 
-        SET STATUS = 'INACTIVE'
-        WHERE BINARY USER_MAIL NOT IN
-        (
-         SELECT DISTINCT  BINARY u.user_email
-        FROM  {cfg["WORDPRESS_PREFIX"]}_posts AS p
-        LEFT JOIN  {cfg["WORDPRESS_PREFIX"]}_posts AS p2 ON p2.ID = p.post_parent
-        LEFT JOIN  {cfg["WORDPRESS_PREFIX"]}_users AS u ON u.id = p.post_author
-        LEFT JOIN  {cfg["WORDPRESS_PREFIX"]}_usermeta AS um ON u.id = um.user_id
-        WHERE p.post_type = 'wc_user_membership'
-        AND p.post_status IN ('wcm-active')
-        AND p2.post_type = 'wc_membership_plan'
-        )
-        """)
-    WPDB.commit()
+    try:    
+        WPDBCursor.execute(f"""
+            update chartsekte.users 
+            SET STATUS = 'INACTIVE'
+            WHERE BINARY USER_MAIL NOT IN
+            (
+             SELECT DISTINCT  BINARY u.user_email
+            FROM  {cfg["WORDPRESS_PREFIX"]}_posts AS p
+            LEFT JOIN  {cfg["WORDPRESS_PREFIX"]}_posts AS p2 ON p2.ID = p.post_parent
+            LEFT JOIN  {cfg["WORDPRESS_PREFIX"]}_users AS u ON u.id = p.post_author
+            LEFT JOIN  {cfg["WORDPRESS_PREFIX"]}_usermeta AS um ON u.id = um.user_id
+            WHERE p.post_type = 'wc_user_membership'
+            AND p.post_status IN ('wcm-active')
+            AND p2.post_type = 'wc_membership_plan'
+            )
+            """)
+        WPDB.commit()
+    except:
+        quit()
 
     #REMOVE ROLES FROM DB ENTRYS
-    DBCursor.execute(f"""
-        SELECT * from users WHERE STATUS = 'INACTIVE'
-        """)
-    res = DBCursor.fetchall()
+    try:
+        DBCursor.execute(f"""
+            SELECT * from users WHERE STATUS = 'INACTIVE'
+            """)
+        res = DBCursor.fetchall()
+    except:
+        quit()
 
     await bot.wait_until_ready()
     guild = bot.get_guild(cfg["GUILD_ID"])
