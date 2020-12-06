@@ -60,7 +60,7 @@ async def call(ctx):
     #ONLY IN VERIFICATION
     if checkDM(ctx.message.channel):
         if ctx.message.channel.id == cfg["VERIFICATION_CHANNEL"]:
-            await ctx.message.author.send("\nHallo,\num dich automatisch für unserem Discord Server freizuschalten, wird deine EMail-Adresse benötigt.\nBitte schreibe einfach deine EMail-Adresse, welche du beim Kauf auf chartsekte.de angegeben hast, mit: \n>mail DEINEMAIL")
+            await ctx.message.author.send("\nHallo,\num dich automatisch für unserem Discord Server freizuschalten, wird deine EMail-Adresse benötigt. Weitere Informationen zur Datenverarbeitung findest du in unserer Datenschutzerklärung unter https://chartsekte.de/datenschutzerklaerung/.\nBitte schreibe einfach deine EMail-Adresse (Zu finden unter https://chartsekte.de/mein-konto/edit-account/), welche du beim kauf auf chartsekte.de angegeben hast mit: \n>mail DEINEMAIL")
             await ctx.message.delete()
         else:
             return
@@ -237,25 +237,25 @@ async def member_sync():
     except:
         quit()
 
-    #REMOVE ROLES FROM DB ENTRYS
-    try:
-        DBCursor.execute(f"""
-            SELECT * from users WHERE STATUS = 'INACTIVE'
-            """)
-        res = DBCursor.fetchall()
-    except:
-        quit()
-
-    await bot.wait_until_ready()
     guild = bot.get_guild(cfg["GUILD_ID"])
     role = get(guild.roles, name=cfg["ROLE"])
-
-    for x in res:
-        try:
-            user = guild.get_member(int(x[0]))
-            await user.remove_roles(role)
-        except:
-            pass
+    
+    #REMOVE ACCOUNTS WITHOUT ACTIVE STATUS
+    try:
+        DBCursor.execute(f"""
+            SELECT DISCORD_ID from users WHERE STATUS = 'ACTIVE'
+            """)
+        res2 = DBCursor.fetchall()
+        notremove =[]
+        for x in res2:
+            notremove.append(x[0])
+        for member in guild.members:
+            if str(member.id) not in notremove:
+                user = guild.get_member(member.id)
+                await user.remove_roles(role)
+    except:
+        quit()
+   
 
 @member_sync.before_loop
 async def member_sync_before():
