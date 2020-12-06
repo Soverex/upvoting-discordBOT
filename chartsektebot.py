@@ -40,13 +40,13 @@ def checkDM(Channdel_Object):
         return False
 
 intents = discord.Intents.all()
-bot = commands.Bot(command_prefix='>', description="Chartsekte Bot",intents=intents)
+bot = commands.Bot(command_prefix='>', description="Chartsekte Bot", intents=intents)
 bot.remove_command('help')
 
 @bot.command()
 async def help(ctx):
     if checkDM(ctx.message.channel):
-        await ctx.send('**ChartSekte Bot**\n\n**Website**\nhttps://chartsekte.de \n**Commands:**`\n>ping [Selftest]\n>top [Zeigt die Top 5 User an]`')
+        await ctx.send('**ChartSekte Bot**\n\n**Website**\nhttps://chartsekte.de \n**Commands:**`\n>ping [Selftest]\n>top [Zeigt die Top 5 User an]\n>call [Startet die Discord Verifizierung]`')
     else:
         return
 @bot.command()
@@ -60,7 +60,8 @@ async def call(ctx):
     #ONLY IN VERIFICATION
     if checkDM(ctx.message.channel):
         if ctx.message.channel.id == cfg["VERIFICATION_CHANNEL"]:
-            await ctx.message.author.send("\nHallo,\num dich automatisch für unserem Discord Server freizuschalten, wird deine EMail-Adresse benötigt.\nBitte schreibe einfach deine EMail-Adresse, welche du beim kauf auf chartsekte.de angegeben hast mit: \n>mail DEINEMAIL")
+            await ctx.message.author.send("\nHallo,\num dich automatisch für unserem Discord Server freizuschalten, wird deine EMail-Adresse benötigt.\nBitte schreibe einfach deine EMail-Adresse, welche du beim Kauf auf chartsekte.de angegeben hast, mit: \n>mail DEINEMAIL")
+            await ctx.message.delete()
         else:
             return
     else:
@@ -172,7 +173,6 @@ async def on_raw_reaction_add(payload):#
     if res == "yes":
         #IGNORE USER
         if msg.author.id in IGNORE_LIST:
-            #await ch.send(f"Der User {msg.author.name} kann nicht gevotet werden.", delete_after=cfg["DELETE_AFTER"])
             pass
         else:
              #INSERT LAST UPVOTE
@@ -188,7 +188,7 @@ async def on_raw_reaction_add(payload):#
         await ch.send(f"<@{payload.member.id}> du hast erst kürzlich gevotet. Zwischen jedem Vote müssen {minutes} Minuten liegen.",delete_after=cfg["DELETE_AFTER"])
         #await payload.member.send(f"User <@{payload.member.id}> du hast erst kürzlich gevotet. Zwischen jedem Vote müssen {minutes} Minuten liegen.")
 
-@loop(minutes=5)
+@loop(minutes=1)
 async def member_sync():
     #INSERT USERS FROM WP WITH STATUS ACTIVE
     try:
@@ -198,7 +198,7 @@ async def member_sync():
             LEFT JOIN  {cfg["WORDPRESS_PREFIX"]}_users AS u ON u.id = p.post_author
             LEFT JOIN  {cfg["WORDPRESS_PREFIX"]}_usermeta AS um ON u.id = um.user_id
             WHERE p.post_type = 'wc_user_membership'
-            AND p.post_status IN ('wcm-active')
+            AND p.post_status IN ('wcm-active','wcm-pending')
             AND p2.post_type = 'wc_membership_plan';""")
         res = WPDBCursor.fetchall()
     except:
@@ -223,13 +223,13 @@ async def member_sync():
             SET STATUS = 'INACTIVE'
             WHERE BINARY USER_MAIL NOT IN
             (
-             SELECT DISTINCT  BINARY u.user_email
+            SELECT DISTINCT  BINARY u.user_email
             FROM  {cfg["WORDPRESS_PREFIX"]}_posts AS p
             LEFT JOIN  {cfg["WORDPRESS_PREFIX"]}_posts AS p2 ON p2.ID = p.post_parent
             LEFT JOIN  {cfg["WORDPRESS_PREFIX"]}_users AS u ON u.id = p.post_author
             LEFT JOIN  {cfg["WORDPRESS_PREFIX"]}_usermeta AS um ON u.id = um.user_id
             WHERE p.post_type = 'wc_user_membership'
-            AND p.post_status IN ('wcm-active')
+            AND p.post_status IN ('wcm-active','wcm-pending')
             AND p2.post_type = 'wc_membership_plan'
             )
             """)
@@ -256,9 +256,6 @@ async def member_sync():
             await user.remove_roles(role)
         except:
             pass
-
-    channel = bot.get_channel(cfg["OutputChannel"])
-    await channel.send(f"Wordpress DataBase Sync")
 
 @member_sync.before_loop
 async def member_sync_before():
